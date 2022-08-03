@@ -45,7 +45,7 @@ set(dependencies
 # bugfix for g++-Warning
 #   "<command-line>:0:0: warning: missing whitespace after the macro name"
 remove_definitions(-DDISABLE_LIBUSB-1.0)
-
+add_definitions(-DBOOST_BIND_NO_PLACEHOLDERS)
 ###########
 ## Build ##
 ###########
