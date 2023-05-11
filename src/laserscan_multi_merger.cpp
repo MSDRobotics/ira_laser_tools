@@ -152,13 +152,25 @@ void LaserscanMerger::laserscan_topic_parser()
 	std::map<std::string, std::vector<std::string>> topics;
 
 	istringstream iss(laserscan_topics);
-	set<string> tokens;
-	copy(istream_iterator<string>(iss), istream_iterator<string>(), inserter<set<string>>(tokens, tokens.begin()));
+	std::list<string> tokens;
+	std::copy(istream_iterator<string>(iss), istream_iterator<string>(), std::back_inserter(tokens));
 	std::vector<string> tmp_input_topics;
+
+	for (auto &topic : tokens)
+	{
+		if (topic[0] != '/')
+		{
+			topic = std::string(this->get_namespace()) + "/" + topic;
+		}
+	}
 
 	while (!tokens.empty())
 	{
-		RCLCPP_INFO(this->get_logger(), "Waiting for topics ...");
+		RCLCPP_INFO(this->get_logger(), "Waiting for topics:");
+		for (const auto &topic : tokens)
+		{
+			RCLCPP_INFO(this->get_logger(), " - %s", topic.c_str());
+		}
 		sleep(1);
 
 		topics = this->get_topic_names_and_types();
@@ -167,9 +179,14 @@ void LaserscanMerger::laserscan_topic_parser()
 		{
 			std::vector<std::string> topic_types = topic_it.second;
 
-			if (std::find(topic_types.begin(), topic_types.end(), "sensor_msgs/msg/LaserScan") != topic_types.end() && tokens.erase(topic_it.first) > 0)
+			if (std::find(topic_types.begin(), topic_types.end(), "sensor_msgs/msg/LaserScan") != topic_types.end())
 			{
-				tmp_input_topics.push_back(topic_it.first);
+				auto const old_size = tokens.size();
+				tokens.remove(topic_it.first);
+				if (tokens.size() != old_size)
+				{
+					tmp_input_topics.push_back(topic_it.first);
+				}
 			}
 		}
 	}
@@ -188,9 +205,10 @@ void LaserscanMerger::laserscan_topic_parser()
 			scan_subscribers.resize(input_topics.size());
 			clouds_modified.resize(input_topics.size());
 			clouds.resize(input_topics.size());
-			RCLCPP_INFO(this->get_logger(), "Subscribing to topics\t%ld", scan_subscribers.size());
+			RCLCPP_INFO(this->get_logger(), "Subscribing to topics:");
 			for (std::vector<int>::size_type i = 0; i < input_topics.size(); ++i)
 			{
+				RCLCPP_INFO(this->get_logger(), " - %s", input_topics.at(i).c_str());
 				// workaround for std::bind https://github.com/ros2/rclcpp/issues/583
 				std::function<void(const sensor_msgs::msg::LaserScan::SharedPtr)> callback =
 						std::bind(
@@ -206,6 +224,7 @@ void LaserscanMerger::laserscan_topic_parser()
 			RCLCPP_INFO(this->get_logger(), "Not subscribed to any topic.");
 		}
 	}
+	RCLCPP_INFO(this->get_logger(), "Successfully subscribed to all topics.");
 }
 
 void LaserscanMerger::scanCallback(sensor_msgs::msg::LaserScan::SharedPtr scan, std::string topic)
