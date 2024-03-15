@@ -77,8 +77,12 @@ install(TARGETS laserscan_multi_merger laserscan_virtualizer
 )
 
 ## Mark other files for installation (e.g. launch and bag files, etc.)
-install(DIRECTORY launch/ config/
+install(DIRECTORY launch/ 
   DESTINATION share/${PROJECT_NAME}/launch
+)
+
+install(DIRECTORY config/
+  DESTINATION share/${PROJECT_NAME}/config
 )
 
 ament_export_dependencies(${dependencies})
